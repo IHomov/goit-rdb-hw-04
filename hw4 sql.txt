@@ -1,0 +1,127 @@
+-- Create new SCHEMA hw4
+
+create schema if not exists LibraryManagement;
+use LibraryManagement;
+DROP TABLE IF EXISTS borrowed_books;
+DROP TABLE IF EXISTS books;
+DROP TABLE IF EXISTS authors;
+DROP TABLE IF EXISTS genres;
+DROP TABLE IF EXISTS users;
+
+-- 1b. Create authors table
+CREATE TABLE authors (
+author_id INT auto_increment primary KEY,
+author_name VARCHAR(255) NOT NULL
+);
+
+-- 1c. Create genres table
+CREATE TABLE genres (
+genre_id INT  auto_increment primary KEY,
+genre_name VARCHAR(255) NOT NULL
+);
+
+-- 1d. Create books table with Foreign Keys
+CREATE TABLE books (
+    book_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    publication_year INT,
+    author_id INT,
+    genre_id INT,
+    FOREIGN KEY (author_id) REFERENCES authors(author_id),
+    FOREIGN KEY (genre_id) REFERENCES genres(genre_id)
+);
+-- 1e. Create users table
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL
+);
+-- 1f. Create borrowed_books table
+CREATE TABLE borrowed_books (
+    borrow_id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT,
+    user_id INT,
+    borrow_date DATE,
+    return_date DATE,
+    FOREIGN KEY (book_id) REFERENCES books(book_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+
+
+-- 2. Populate with data 
+INSERT INTO authors (author_name) VALUES ('Ivan Franko');
+INSERT INTO genres (genre_name) VALUES ('Drama');
+INSERT INTO books (title, publication_year, author_id, genre_id) 
+VALUES ('Stolen Happiness', 1893, 1, 1);
+
+INSERT INTO users (username, email) VALUES ('ivan_fan', 'franko_fan@ukr.net');
+INSERT INTO borrowed_books (book_id, user_id, borrow_date, return_date) 
+VALUES (1, 1, '2024-02-21', '2024-03-21');
+
+-- Check library data
+SELECT b.title, a.author_name, g.genre_name FROM books b
+JOIN authors a ON b.author_id = a.author_id
+JOIN genres g ON b.genre_id = g.genre_id;
+
+-- 3. Big Join order_details, orders, customers, products, categories, employees, shippers, suppliers. 
+USE hw3;
+SELECT *
+FROM order_details as od
+INNER JOIN orders as o ON od.order_id = o.id
+INNER JOIN customers as c ON o.customer_id = c.id
+INNER JOIN products as p ON od.product_id = p.id
+INNER JOIN categories as cat ON p.category_id = cat.id
+INNER JOIN employees as e ON o.employee_id = e.employee_id
+INNER JOIN shippers as sh ON o.shipper_id = sh.id
+INNER JOIN suppliers as sup ON p.supplier_id = sup.id;
+
+-- 4.1 COUNT
+SELECT COUNT(*)
+FROM order_details as od
+INNER JOIN orders as o ON od.order_id = o.id
+INNER JOIN customers as c ON o.customer_id = c.id
+INNER JOIN products as p ON od.product_id = p.id
+INNER JOIN categories as cat ON p.category_id = cat.id
+INNER JOIN employees as e ON o.employee_id = e.employee_id
+INNER JOIN shippers as sh ON o.shipper_id = sh.id
+INNER JOIN suppliers as sup ON p.supplier_id = sup.id;
+-- answer:518
+
+-- 4.2 Changed INNER on LEFT or RIGHT
+SELECT COUNT(*)
+FROM order_details as od
+LEFT JOIN orders as o ON od.order_id = o.id
+LEFT JOIN customers as c ON o.customer_id = c.id
+RIGHT JOIN products as p ON od.product_id = p.id
+LEFT JOIN categories as cat ON p.category_id = cat.id
+RIGHT JOIN employees as e ON o.employee_id = e.employee_id
+LEFT JOIN shippers as sh ON o.shipper_id = sh.id
+LEFT JOIN suppliers as sup ON p.supplier_id = sup.id;
+
+/* answer:519
+ Question: Why does the row count change when switching from INNER JOIN to LEFT/RIGHT JOIN?
+
+Answer: > The row count increased from 518 to 519 because INNER JOIN only returns rows where there is a match in both joined tables. If a record (like a product or an employee) doesn't have a corresponding entry in the related table, it is excluded.
+
+In contrast, LEFT JOIN or RIGHT JOIN includes all records from the "outer" table even if no match exists. In this case, there was one record that didn't have a match, which INNER JOIN filtered out, but LEFT/RIGHT JOIN preserved by filling the missing data with NULL values. */
+
+-- 4.3 - 4.7. Filtering, Grouping, Having, Sorting, and Limit
+SELECT 
+cat.name AS category_name,
+COUNT(*) AS total_rows,
+-- answer 519
+AVG(od.quantity) AS average_quantity
+FROM order_details as od
+INNER JOIN orders as o ON od.order_id = o.id
+INNER JOIN customers as c ON o.customer_id = c.id
+INNER JOIN products as p ON od.product_id = p.id
+INNER JOIN categories as cat ON p.category_id = cat.id
+INNER JOIN employees as e ON o.employee_id = e.employee_id
+WHERE e.employee_id > 3 AND e.employee_id<= 10
+GROUP BY cat.name 
+HAVING avg(od.quantity) > 21
+ORDER BY total_rows desc
+LIMIT 4 offset 1;
+
+
